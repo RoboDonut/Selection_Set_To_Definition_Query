@@ -2,7 +2,7 @@ ArcGIS Desktop Python AddIn for converting selected features to a definition que
 
 Built and tested on ArcGIS 10.3
 
-Install: Run Selection_to_DefQuery2.esriaddin
+Install: Run Selection_Set_To_Definition_Query.esriaddin
 
 Use: In ArcMap open the Customize dialog and open the "Selection to Def Query" Toolbar. Once open, select a layer from the combobox. Select features from the selected layer (by attribute, on the map, or spatially). Click the button on the left to apply the def query. Click the button on the right to clear the def query.
 Thats about it.
