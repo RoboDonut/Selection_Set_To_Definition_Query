@@ -6,6 +6,7 @@
 # Notes: 
 # Dependencies: arcpy, os
 # Archetecture: 32bit, 64bit (with proper installs)
+# Modified by Mat Savage 8/6/2015
 
 # imports
 import arcpy
@@ -23,7 +24,8 @@ class layer_list(object):
         self.selected_layer=""
     def onSelChange(self, selection):
         self.items = vectorLayerList()
-        self.selected_layer = arcpy.mapping.ListLayers(mxd, selection)[0]
+        val = arcpy.mapping.ListLayers(mxd, selection)[0]
+        self.selected_layer = arcpy.mapping.Layer(val)
         print self.selected_layer
         self.refresh()
     def onEditChange(self, text):
@@ -41,7 +43,8 @@ class remove_defQuery(object):
         self.enabled = True
         self.checked = False
     def onClick(self):
-        layer_list.value.definitionQuery = ""
+        lyr = arcpy.mapping.Layer(layer_list.value)
+        lyr.definitionQuery = ""
         arcpy.RefreshActiveView()
 
 class select_to_defQuery(object):
@@ -51,13 +54,21 @@ class select_to_defQuery(object):
         self.checked = False
     def onClick(self):
         def_query = ""
-        print layer_list.value
-        oids = [x.OBJECTID for x in arcpy.SearchCursor(layer_list.value)]
-        for oid in oids:
-            def_query += "OBJECTID = {} OR ".format(oid)
-        layer_list.value.definitionQuery = def_query[:-4]
-        arcpy.RefreshActiveView()
-        print def_query
+        #print layer_list.value
+        lyr = layer_list.value
+        d = arcpy.Describe(lyr) #Describe the layer
+        if lyr.isFeatureLayer:
+            objectIDField = d.featureClass.OIDFieldName #Get the official OID field in case it's something weird
+        else:
+            return #this only works on feature layers
+        selectedObjectIDs = d.FIDSet #this gets the selected set of OIDs: [1;2;3]
+        selectedObjectIDs = str(selectedObjectIDs.split(";")).replace("[","(").replace("]",")").replace("'","").replace("u","") #format it so it looks like (1,2,3)
+        if selectedObjectIDs != "()": #if there's anything in there, do it
+            lyr.definitionQuery = objectIDField + " in " + selectedObjectIDs #OBJECTID IN (1,2,3)
+            arcpy.RefreshActiveView()
+        else:
+            pythonaddins.MessageBox("No features are selected in the current layer!","Error") #No features selected? That's a paddlin'
+        #print def_query
         
 def vectorLayerList():
     global layer, mxd, df
@@ -68,9 +79,7 @@ def vectorLayerList():
         
 #----------MAIN----------
 def main():
-    mxd = arcpy.mapping.MapDocument('current')
-    df = arcpy.mapping.ListDataFrames(mxd)[0]    
-    layers = [x for x in arcpy.mapping.ListLayers(mxd,"",df) if x.isFeatureLayer]
+    layers = vectorLayerList()
     
     
     
